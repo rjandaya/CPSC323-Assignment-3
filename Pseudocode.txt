@@ -1,0 +1,44 @@
+R21. <Compound>                 ::= {  <Statement List>  }
+procedure gen_Compound() {
+  if token = '{' then {
+    callLexer();
+    State_List();
+    if token = '}' then {
+      callLexer();
+    }
+    else error_message("} expected")
+  }
+  else error_message("{ expected")
+}
+
+R28. <Scan>                     ::= get ( <IDs> );
+procedure gen_Scan() {
+  if token = 'get' {
+    callLexer();
+    if token = '(' then {
+      IDs();
+      if token = ')' then {
+      callLexer();
+      }
+      else error_message(") expected")
+    }
+    else error_message("( expected")
+  }
+  else error_message("get expected")
+}
+
+R27. <Print>                    ::= put ( <Expression> );
+procedure gen_Print() {
+  if token = 'put' then {
+    callLexer();
+    if token = '(' then {
+      Expression();
+      if token = ')' {
+        callLexer();
+      }
+      else error_message(") expected")
+    }
+    else error_message("() expected")
+  }
+  else error_message("put expected")
+}
