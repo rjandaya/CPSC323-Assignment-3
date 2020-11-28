@@ -34,6 +34,7 @@ procedure gen_Print() {
     if token = '(' then {
       Expression();
       if token = ')' {
+        gen_instr(STOUT, Memory_address)
         callLexer();
       }
       else error_message(") expected")
