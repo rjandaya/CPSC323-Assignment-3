@@ -10,6 +10,9 @@ const std::vector<std::string> keywords = { "int", "float", "return", "function"
 const std::vector<std::string> seps = { "[", "]", "(", ")", "{", "}", ";", ":"  , "$$" , ",", "$" };
 const std::vector<std::string> ops = { "=", "!", "<", ">", "-", "+", "*", "/" , "<=", ">=", "!=", "-=", "+=" };
 
+bool display = false;
+int line = 1;
+
 class record {
 private:
 	std::string token, lexeme;
@@ -24,13 +27,13 @@ public:
 class symbol {
 private:
 	record sym;
-	int address;
+	std::string address;
 public:
 	record getSym() { return this->sym; }
-	int getAddress() { return this->address; }
+	std::string getAddress() { return this->address; }
 
 	void setSym(record s) { this->sym = s; }
-	void setAddress(int s) { this->address = s; }
+	void setAddress(int s) { this->address = std::to_string(s); }
 
 	symbol(record sym, int address) { 
 		setSym(sym);
@@ -41,18 +44,46 @@ public:
 std::vector<symbol> sym_Table;
 int Memory_address = 5000;
 
+void undecla_Error() {
+	std::cerr << "Error: undeclared Identifier used in line " << line << ".\n";
+	// 
+	exit(2);
+}
+
+void redecla_Error() {
+	std::cerr << "Error: Identifier illegally redeclared in line " << line << ".\n";
+	// 
+	exit(2);
+}
+
+
 std::string get_address(std::string sym) {
-	std::vector<symbol>::iterator i = sym_Table.begin();
-	while (i != sym_Table.end()) {
-		if (i->getSym().getLexeme() == sym) { return std::to_string(i->getAddress()); }
+	std::vector<symbol>::iterator i;
+	i = sym_Table.begin();
+	while (!sym_Table.empty() && i != sym_Table.end()) {
+		if (i->getSym().getLexeme() == sym) { return i->getAddress(); }
+		i++;
 	}
+	undecla_Error(); 
+}
+
+void make_Sym(record sym) {
+	std::vector<symbol>::iterator i;
+	i = sym_Table.begin();
+	while (!sym_Table.empty() && i != sym_Table.end()) {
+		if (i->getSym().getLexeme() == sym.getLexeme()) { redecla_Error(); }
+		i++;
+	}
+	sym_Table.push_back(symbol(sym,Memory_address));
+	Memory_address++;
 }
 
 void print_Symbols(std::ofstream& out) {
 	out << "Identifier\t" << "MemoryLocation\tType\n";
 	std::vector<symbol>::iterator i = sym_Table.begin();
 	while (i != sym_Table.end()) {
-		out << i->getSym().getLexeme() << "\t" << i->getAddress() << "\t" << i->getSym().getToken() << "\n";
+		out << i->getSym().getLexeme() << "\t\t" << i->getAddress() << "\t\t" << i->getSym().getToken() << "\n";
+		i++;
 	}
 }
 
@@ -70,17 +101,21 @@ public:
 	void setOprnd(std::string s) { this->oprnd = s; }
 	void setOp(std::string s) { this->op = s; }
 	void setAddress(int s) { this->address = s; }
+
+	instruction(int i, std::string s, std::string t) {
+		setOprnd(t);
+		setOp(s);
+		setAddress(i);
+	}
 };
 
-int instr_address = 0;
+int instr_address = 1;
 std::vector<instruction> Instr_table;
 
 void gen_instr(std::string op, std::string oprnd)
 /* instr_address shows the current instruction address is global */
 {
-	Instr_table[instr_address].setAddress(instr_address + 1);
-	Instr_table[instr_address].setOp(op);
-	Instr_table[instr_address].setOprnd(oprnd);
+	Instr_table.push_back(instruction(instr_address, op, oprnd));
 	instr_address++;
 };
 
@@ -89,6 +124,7 @@ void print_Instr(std::ofstream& out) {
 	std::vector<instruction>::iterator i = Instr_table.begin();
 	while (i != Instr_table.end()) {
 		out << i->getAddress() << "\t" << i->getOp() << "\t" << i->getOprnd() << "\n";
+		i++;
 	}
 }
 
@@ -150,7 +186,7 @@ bool FSM(std::string& state, char input, std::string& lexeme) {
 	return false;
 }
 
-int line = 1;
+
 
 record callLexer(std::ofstream& out,std::ifstream& source) {
 	std::string state = "start", lexeme = "";
@@ -185,7 +221,7 @@ record callLexer(std::ofstream& out,std::ifstream& source) {
 			latest.setLexeme(lexeme);
 			latest.setToken(state);
 
-			if (latest.getToken() != "fileend") out << std::left << std::setw(10) << "Token:" << latest.getToken() << "\t:\t" << std::setw(10) << "Lexeme:" << latest.getLexeme() << "\n";
+			if (latest.getToken() != "fileend" && display) out << std::left << std::setw(10) << "Token:" << latest.getToken() << "\t:\t" << std::setw(10) << "Lexeme:" << latest.getLexeme() << "\n";
 			return latest;
 		}
 		else if (!isspace(c) && state != "comments" && done != 1) { lexeme.push_back(c); }
@@ -195,7 +231,7 @@ record callLexer(std::ofstream& out,std::ifstream& source) {
 	
 }
 
-bool display = true;
+
 
 void Syntax_Error(record latest, std::ofstream& out, std::string expected) {
 	std::cerr << "Syntax Error: Expected " << expected << " on line " << line <<"\n";
@@ -213,7 +249,9 @@ void Lexeme_Check(std::ofstream& out,std::ifstream& source, std::string lexeme) 
 void Rat20F(std::ofstream& out, std::ifstream& source);
 record OFD(std::ofstream& out, std::ifstream& source); 
 record IDs(std::ofstream& out, std::ifstream& source, record latest);
+record IDs(std::ofstream& out, std::ifstream& source, record latest, bool make);
 record IDs_Cont(std::ofstream& out, std::ifstream& source);
+record IDs_Cont(std::ofstream& out, std::ifstream& source, bool make);
 void Compound(std::ofstream& out, std::ifstream& source);
 void Statement(std::ofstream& out, std::ifstream& source, record latest);
 record State_List(std::ofstream& out, std::ifstream& source, record latest);
@@ -221,7 +259,7 @@ record Expression(std::ofstream& out, std::ifstream& source, record latest);
 record Para_List(std::ofstream& out, std::ifstream& source, record latest);
 record Decla_List(std::ofstream& out, std::ifstream& source, record latest);
 record Func_Def(std::ofstream& out, std::ifstream& source);
-void Assign(std::ofstream& out, std::ifstream& source);
+void Assign(std::ofstream& out, std::ifstream& source, record latest);
 void If(std::ofstream& out, std::ifstream& source); 
 void Return(std::ofstream& out, std::ifstream& source);
 void IfP(std::ofstream& out, std::ifstream& source, record latest);
@@ -254,6 +292,9 @@ int main(int argc, const char* argv[]) {
 
 	Rat20F(out, source);
 
+	print_Symbols(out);
+	print_Instr(out);
+
 	out.close();
 	source.close();
 	return 0;
@@ -272,7 +313,7 @@ record PrimaryP(std::ofstream& out, std::ifstream& source) {
 		return latest;
 	}
 	else 
-		latest = IDs(out, source, callLexer(out, source));
+		latest = IDs(out, source, callLexer(out, source),false);
 	if (latest.getLexeme() != ")") {
 		Syntax_Error(latest, out, ")");
 	}
@@ -371,7 +412,17 @@ void Relop(std::ofstream& out, std::ifstream& source, record latest) {
 		push_jumpStack(instr_address); /* another stack need */
 		gen_instr("JUMPZ", "nil");
 	}
+	else if (latest.getLexeme() == "<=") {
+		gen_instr("LES", "nil");
+		push_jumpStack(instr_address); /* another stack need */
+		gen_instr("JUMPZ", "nil");
+	}
 	else if (latest.getLexeme() == ">") {
+		gen_instr("GRT", "nil");
+		push_jumpStack(instr_address); /* another stack need */
+		gen_instr("JUMPZ", "nil");
+	}
+	else if (latest.getLexeme() == ">=") {
 		gen_instr("GRT", "nil");
 		push_jumpStack(instr_address); /* another stack need */
 		gen_instr("JUMPZ", "nil");
@@ -420,10 +471,11 @@ void Scan(std::ofstream& out, std::ifstream& source) {
 		out << "\t<Scan> ::= get ( <IDs> );\n";
 
 	Lexeme_Check(out, source, "(");
-	record latest = IDs(out, source, callLexer(out, source));
+	record latest = IDs(out, source, callLexer(out, source),false);
 	if (latest.getLexeme() != ")") {
 		Syntax_Error(latest, out, ")");
 	}
+	gen_instr("STDIN", std::to_string(instr_address));
 	Lexeme_Check(out, source, ";");
 }
 
@@ -436,7 +488,9 @@ void Print(std::ofstream& out, std::ifstream& source) {
 	if (latest.getLexeme() != ")") {
 		Syntax_Error(latest, out, ")");
 	}
+	gen_instr("STDOUT", std::to_string(instr_address));
 	Lexeme_Check(out, source, ";");
+	
 }
 
 // Vien's Section
@@ -451,12 +505,31 @@ record IDs_Cont(std::ofstream& out, std::ifstream& source) {
 		return latest;
 }
 
+record IDs_Cont(std::ofstream& out, std::ifstream& source, bool make) {
+	if (display)
+		out << "\t<IDs>' ::= ,  <IDs>  |  <Empty>'\n";
+	record latest = callLexer(out, source);
+	if (latest.getLexeme() == ",")
+		return IDs(out, source, callLexer(out, source), make);
+	else
+		return latest;
+}
+
+record IDs(std::ofstream& out, std::ifstream& source, record latest, bool make) {
+	if (display)
+		out << "\t<IDs> ::= <Identifier> <IDs>'\n";
+	if (latest.getToken() != "identifier")
+		Syntax_Error(latest, out, "an identifier");
+	else if (make)
+		make_Sym(latest);
+	else gen_instr("PUSHM", get_address(latest.getLexeme()));
+	return IDs_Cont(out, source, make);
+}
 record IDs(std::ofstream& out, std::ifstream& source, record latest) {
 	if (display)
 		out << "\t<IDs> ::= <Identifier> <IDs>'\n";
 	if (latest.getToken() != "identifier")
 		Syntax_Error(latest, out, "an identifier");
-	
 	return IDs_Cont(out, source);
 }
 
@@ -494,8 +567,8 @@ record Decla(std::ofstream& out, std::ifstream& source, record a) {
 		out << "\t<Parameter> ::= <Qualifier> <IDs>\n";
 	Qualifier(out, source, a);
 	record latest = callLexer(out, source);
-	sym_Table.push_back(symbol(latest, Memory_address++));
-	return IDs(out, source, latest);
+	
+	return IDs(out, source, latest, true);
 }
 
 record Para_List_Cont(std::ofstream& out, std::ifstream& source) {
@@ -655,8 +728,7 @@ void Statement(std::ofstream& out, std::ifstream& source, record latest) {
 	}
 	//<Assign>
 	else if (latest.getToken() == "identifier")
-
-		Assign(out, source);
+		Assign(out, source,latest);
 	//<If>
 	else if (latest.getLexeme() == "if") {
 		If(out, source);
@@ -691,15 +763,13 @@ void Compound(std::ofstream& out, std::ifstream& source) {
 		Syntax_Error(latest, out, "}");
 }
 
-void Assign(std::ofstream& out, std::ifstream& source) {
+void Assign(std::ofstream& out, std::ifstream& source,record latest) {
 	if (display)
 		out << "\t<Assign> :: <Identifier> = <Expression>; \n";
 
-	record latest = callLexer(out, source);
 	std::string save = latest.getLexeme();
 
-	if (latest.getLexeme() != "=")
-		Syntax_Error(latest, out, "=");
+	Lexeme_Check(out, source, "=");
 
 	latest = Expression(out, source,callLexer(out, source));
 	gen_instr("POPM", get_address(save));
@@ -760,15 +830,15 @@ void ReturnP(std::ofstream& out, std::ifstream& source) {
 void Rat20F(std::ofstream& out, std::ifstream& source) {
 	display = true;
 	if (display)
-		out << "\t<Rat20F> ::= <Opt Function Definitions> $$ <Opt Declaration List> <Statement List> $$\n";
+		out << "\t<Rat20F> ::= $$ <Opt Declaration List> <Statement List> $$\n";
 
-	record latest = OFD(out, source);
+	Lexeme_Check(out, source, "$$");
 
-	if (latest.getLexeme() != "$$")
-		Syntax_Error(latest, out, "$$");
+	record latest = ODL(out, source); // <Opt Declaration List>
 
-	latest = ODL(out, source); // <Opt Declaration List>
 	latest = State_List(out, source, latest);
 	if (latest.getLexeme() != "$$")
 		Syntax_Error(latest, out, "$$");
+
+	
 }
