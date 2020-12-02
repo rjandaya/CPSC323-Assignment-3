@@ -150,6 +150,8 @@ void print_Instr(std::ofstream& out) {
 	}
 }
 
+std::vector<record> arith_Table;
+
 void arith_Error() {
 	std::cerr << "Error: Illegal arithmetic operation in line " << line << ".\n";
 	// 
@@ -157,10 +159,18 @@ void arith_Error() {
 }
 
 void arith_Check() {
-	if (get_sym_by_address(Instr_table[instr_address - 2].getOprnd()).getType() == "boolean" || get_sym_by_address(Instr_table[instr_address - 3].getOprnd()).getType() == "boolean")
-		arith_Error();
-	if (get_sym_by_address(Instr_table[instr_address - 2].getOprnd()).getType() != get_sym_by_address(Instr_table[instr_address - 3].getOprnd()).getType())
-		arith_Error();
+	std::string save = arith_Table.back().getLexeme();
+	if (arith_Table.back().getLexeme() == "identifier") {
+		arith_Table.pop_back();
+		if (get_sym_by_address(save).getType() == "boolean" || get_sym_by_address(arith_Table.back().getLexeme()).getType() == "boolean")
+			arith_Error();
+		if (get_sym_by_address(save).getType() != get_sym_by_address(arith_Table.back().getLexeme()).getType())
+			arith_Error();
+	}
+	else if (arith_Table.back().getLexeme() == "int") {
+		if (get_sym_by_address(save).getType() != "int")
+			arith_Error();
+	}
 }
 
 // ----------------------------------------------------------------------------------
@@ -384,6 +394,7 @@ record Primary(std::ofstream& out, std::ifstream& source, record latest) {
 	// <Integer>
 	else if (latest.getToken() == "int") {
 		/* do i return the lexeme here? */
+		arith_Table.push_back(latest);
 		gen_instr("PUSHM", latest.getLexeme());
 		return callLexer(out, source);
 	}
@@ -416,12 +427,13 @@ record Factor(std::ofstream& out, std::ifstream& source,record latest) {
 record TermP(std::ofstream& out, std::ifstream& source, record latest) {
 	if (display)
 		out << "\t<Term>' ::= * <Factor> <Term>' | / <Factor> <Term>' | <Empty>\n";
+	record save = latest;
 	if (latest.getLexeme() == "*" || latest.getLexeme() == "/") {
 		latest = Factor(out, source, callLexer(out, source));
 		arith_Check();
-		if (latest.getLexeme() == "*")
+		if (save.getLexeme() == "*")
 			gen_instr("MUL", "nil");
-		else if (latest.getLexeme() == "/")
+		else if (save.getLexeme() == "/")
 			gen_instr("DIV", "nil");
 		return TermP(out,source,latest);
 	}
@@ -461,36 +473,6 @@ record Expression(std::ofstream& out, std::ifstream& source,record latest) {
 void Relop(std::ofstream& out, std::ifstream& source, record latest) {
 	if (display)
 		out << "\t<Relop> ::= == | != | > | < | <= | =>\n";
-	if (latest.getLexeme() == "<"){
-		gen_instr("LES", "nil");
-		push_jumpStack(instr_address); /* another stack need */
-		gen_instr("JUMPZ", "nil");
-	}
-	else if (latest.getLexeme() == "<=") {
-		gen_instr("LES", "nil");
-		push_jumpStack(instr_address); /* another stack need */
-		gen_instr("JUMPZ", "nil");
-	}
-	else if (latest.getLexeme() == ">") {
-		gen_instr("GRT", "nil");
-		push_jumpStack(instr_address); /* another stack need */
-		gen_instr("JUMPZ", "nil");
-	}
-	else if (latest.getLexeme() == ">=") {
-		gen_instr("GRT", "nil");
-		push_jumpStack(instr_address); /* another stack need */
-		gen_instr("JUMPZ", "nil");
-	}
-	else if (latest.getLexeme() == "==") {
-		gen_instr("EQU", "nil");
-		push_jumpStack(instr_address); /* another stack need */
-		gen_instr("JUMPZ", "nil");
-	}
-	else if (latest.getLexeme() == "!=") {
-		gen_instr("NEQ", "nil");
-		push_jumpStack(instr_address); /* another stack need */
-		gen_instr("JUMPZ", "nil");
-	}
 
 	if (latest.getLexeme() == "==" || latest.getLexeme() == "!=" || latest.getLexeme() == ">" || latest.getLexeme() == "<" || latest.getLexeme() == "<=" || latest.getLexeme() == "=>")
 		return;
@@ -501,7 +483,38 @@ record Condition(std::ofstream& out, std::ifstream& source) {
 		out << "\t<Condition> ::= <Expression> <Relop> <Expression>\n";
 	record latest = Expression(out, source, callLexer(out, source));
 	Relop(out, source,latest);
-	return Expression(out, source, callLexer(out, source));
+	record save = Expression(out, source, callLexer(out, source));
+	if (latest.getLexeme() == "<") {
+		gen_instr("LES", "nil");
+		push_jumpStack(instr_address - 1); /* another stack need */
+		gen_instr("JUMPZ", "nil");
+	}
+	else if (latest.getLexeme() == "<=") {
+		gen_instr("LES", "nil");
+		push_jumpStack(instr_address - 1); /* another stack need */
+		gen_instr("JUMPZ", "nil");
+	}
+	else if (latest.getLexeme() == ">") {
+		gen_instr("GRT", "nil");
+		push_jumpStack(instr_address - 1); /* another stack need */
+		gen_instr("JUMPZ", "nil");
+	}
+	else if (latest.getLexeme() == ">=") {
+		gen_instr("GRT", "nil");
+		push_jumpStack(instr_address - 1); /* another stack need */
+		gen_instr("JUMPZ", "nil");
+	}
+	else if (latest.getLexeme() == "==") {
+		gen_instr("EQU", "nil");
+		push_jumpStack(instr_address - 1); /* another stack need */
+		gen_instr("JUMPZ", "nil");
+	}
+	else if (latest.getLexeme() == "!=") {
+		gen_instr("NEQ", "nil");
+		push_jumpStack(instr_address - 1); /* another stack need */
+		gen_instr("JUMPZ", "nil");
+	}
+	return save;
 }
 
 void While(std::ofstream& out, std::ifstream& source) {
@@ -580,7 +593,10 @@ record IDs(std::ofstream& out, std::ifstream& source, record latest, bool make, 
 		latest.setType(*word);
 		make_Sym(latest);
 	}
-	else gen_instr("PUSHM", get_address(latest.getLexeme()));
+	else { 
+		arith_Table.push_back(latest);
+		gen_instr("PUSHM", get_address(latest.getLexeme()));
+	}
 	return IDs_Cont(out, source, make,a);
 }
 record IDs(std::ofstream& out, std::ifstream& source, record latest) {
@@ -886,7 +902,7 @@ void ReturnP(std::ofstream& out, std::ifstream& source) {
 }
 
 void Rat20F(std::ofstream& out, std::ifstream& source) {
-	display = true;
+	//display = true;
 	if (display)
 		out << "\t<Rat20F> ::= $$ <Opt Declaration List> <Statement List> $$\n";
 
@@ -898,5 +914,4 @@ void Rat20F(std::ofstream& out, std::ifstream& source) {
 	if (latest.getLexeme() != "$$")
 		Syntax_Error(latest, out, "$$");
 
-	
 }
