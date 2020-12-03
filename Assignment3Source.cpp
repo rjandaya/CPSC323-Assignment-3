@@ -540,9 +540,19 @@ void Scan(std::ofstream& out, std::ifstream& source) {
 		out << "\t<Scan> ::= get ( <IDs> );\n";
 
 	Lexeme_Check(out, source, "(");
-	gen_instr("STDIN", "nil");
-	record latest = IDs(out, source, callLexer(out, source));
-	gen_instr("STDIN", "nil");
+	record latest = callLexer(out,source);
+	if (display)
+		out << "\t<IDs> ::= <Identifier> <IDs>'\n";
+	if (latest.getToken() != "identifier")
+		Syntax_Error(latest, out, "an identifier");
+	while (latest.getToken() == "identifier" || latest.getLexeme() == ",") {
+		if (latest.getToken() == "identifier") {
+			gen_instr("STDIN", "nil");
+			gen_instr("POPM", get_address(latest.getLexeme()));
+		}
+		latest = callLexer(out, source);
+	}
+	
 	if (latest.getLexeme() != ")") {
 		Syntax_Error(latest, out, ")");
 	}
