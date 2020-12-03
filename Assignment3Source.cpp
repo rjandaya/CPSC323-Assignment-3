@@ -159,6 +159,7 @@ void arith_Error() {
 }
 
 void arith_Check() {
+	if (arith_Table.empty()) { arith_Error(); }
 	std::string save = arith_Table.back().getLexeme();
 	if (arith_Table.back().getLexeme() == "identifier") {
 		arith_Table.pop_back();
@@ -379,6 +380,7 @@ record Primary(std::ofstream& out, std::ifstream& source, record latest) {
 
 	// <Identifier> <Primary>'
 	if (latest.getToken() == "identifier") {
+		arith_Table.push_back(latest);
 		gen_instr("PUSHM", get_address(latest.getLexeme()));
 		return PrimaryP(out, source);
 	}
@@ -538,11 +540,13 @@ void Scan(std::ofstream& out, std::ifstream& source) {
 		out << "\t<Scan> ::= get ( <IDs> );\n";
 
 	Lexeme_Check(out, source, "(");
-	record latest = IDs(out, source, callLexer(out, source),false,"");
+	gen_instr("STDIN", "nil");
+	record latest = IDs(out, source, callLexer(out, source));
+	gen_instr("STDIN", "nil");
 	if (latest.getLexeme() != ")") {
 		Syntax_Error(latest, out, ")");
 	}
-	gen_instr("STDIN", std::to_string(instr_address));
+
 	Lexeme_Check(out, source, ";");
 }
 
@@ -555,7 +559,7 @@ void Print(std::ofstream& out, std::ifstream& source) {
 	if (latest.getLexeme() != ")") {
 		Syntax_Error(latest, out, ")");
 	}
-	gen_instr("STDOUT", std::to_string(instr_address));
+	gen_instr("STDOUT", "nil");
 	Lexeme_Check(out, source, ";");
 	
 }
@@ -854,15 +858,16 @@ void Assign(std::ofstream& out, std::ifstream& source,record latest) {
 void If(std::ofstream& out, std::ifstream& source) {
 	if (display)
 		out << "\t<If> ::= if ( <Condition> ) <Statement> <If>'\n";
-	int addr = instr_address;
 	Lexeme_Check(out, source, "(");
 	record latest = Condition(out, source);
 	if (latest.getLexeme() != ")")
 		Syntax_Error(latest, out, ")");
 	
 	Statement(out, source, callLexer(out, source));
+	int addr = instr_address;
 	back_patch(addr);
 	IfP(out, source, callLexer(out, source));
+	gen_instr("LABEL", "");
 	
 }
 
