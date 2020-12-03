@@ -395,7 +395,7 @@ record Primary(std::ofstream& out, std::ifstream& source, record latest) {
 	else if (latest.getToken() == "int") {
 		/* do i return the lexeme here? */
 		arith_Table.push_back(latest);
-		gen_instr("PUSHM", latest.getLexeme());
+		gen_instr("PUSHI", latest.getLexeme());
 		return callLexer(out, source);
 	}
 	// <Real>
