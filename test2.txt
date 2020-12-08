@@ -1,0 +1,13 @@
+$$
+  int num, num2, large;
+
+  num = 0;
+  num2 = 10;
+
+  if (num > num2) {
+    large = num;
+  } else {
+    large = num2;
+  }
+  fi
+$$

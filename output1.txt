@@ -1,0 +1,18 @@
+Identifier	MemoryLocation	Type
+i		5000		identifier
+max		5001		identifier
+
+1	PUSHI	0
+2	POPM	5000
+3	PUSHI	20
+4	POPM	5001
+5	LABEL	nil
+6	PUSHM	5000
+7	PUSHM	5001
+8	LES	nil
+9	JUMPZ	15
+10	PUSHM	5000
+11	PUSHI	1
+12	ADD	nil
+13	POPM	5000
+14	JUMP	5

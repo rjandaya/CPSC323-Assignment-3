@@ -1,0 +1,10 @@
+$$
+  int i, max;
+
+  i = 0;
+  max = 20;
+
+  while(i < max) {
+      i = i + 1;
+  }
+$$

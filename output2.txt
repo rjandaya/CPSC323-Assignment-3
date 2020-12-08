@@ -1,0 +1,18 @@
+Identifier	MemoryLocation	Type
+num		5000		identifier
+num2		5001		identifier
+large		5002		identifier
+
+1	PUSHI	0
+2	POPM	5000
+3	PUSHI	10
+4	POPM	5001
+5	PUSHM	5000
+6	PUSHM	5001
+7	GRT	nil
+8	JUMPZ	11
+9	PUSHM	5000
+10	POPM	5002
+11	PUSHM	5001
+12	POPM	5002
+13	LABEL	
