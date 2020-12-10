@@ -846,6 +846,7 @@ void Statement(std::ofstream& out, std::ifstream& source, record latest) {
 void Compound(std::ofstream& out, std::ifstream& source) {
 	if (display)
 		out << "\t<Compound> ::= { <Statement List> }\n";
+	gen_instr("LABEL", "");
 	record latest = State_List(out, source, callLexer(out, source));
 	if (latest.getLexeme() != "}")
 		Syntax_Error(latest, out, "}");
