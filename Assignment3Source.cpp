@@ -101,10 +101,10 @@ void make_Sym(record sym) {
 }
 
 void print_Symbols(std::ofstream& out) {
-	out << "Identifier\t" << std::setw(12) << "MemoryLocation\t" << std::setw(5) << "Type\n";
+	out << "Identifier " << std::setw(12) << "MemoryLocation " << std::setw(5) << "Type\n";
 	std::vector<symbol>::iterator i = sym_Table.begin();
 	while (i != sym_Table.end()) {
-		out << std:: left << std::setw(12) << i->getSym().getLexeme() << "" << i->getAddress() << std::setw(12) << "" << i->getSym().getToken() << "\n";
+		out << std:: left << std::setw(11) << i->getSym().getLexeme() << "" << i->getAddress() << std::setw(11) << "" << i->getSym().getToken() << "\n";
 		i++;
 	}
 }
@@ -145,7 +145,7 @@ void print_Instr(std::ofstream& out) {
 	out << "\n";
 	std::vector<instruction>::iterator i = Instr_table.begin();
 	while (i != Instr_table.end()) {
-		out << std::setw(2) << i->getAddress() << "\t" << i->getOp() << std::setw(2) << "" << i->getOprnd() << "\n";
+		out << std::setw(3) << i->getAddress() << "" << i->getOp() << std::setw(2) << "" << i->getOprnd() << "\n";
 		i++;
 	}
 }
